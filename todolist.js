@@ -159,3 +159,11 @@ function onButton4Click() {
     tabStar.classList.add('active-tab');
     tabAll.classList.remove('active-tab');
 }
+
+// タスクを保存
+localStorage.setItem('tasks', JSON.stringify(tasksArray));
+
+// ページ読み込み時に復元
+const savedTasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+savedTasks.forEach(task => addTaskToDOM(task));
+
