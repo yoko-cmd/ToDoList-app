@@ -1,3 +1,6 @@
+// ----------------
+// ボタン取得
+// ----------------
 const button = document.querySelector("#task-plus");
 const button2 = document.querySelector("#delete");
 const button3 = document.querySelector("#menu");
@@ -12,7 +15,7 @@ button3.addEventListener("click", onButton3Click, true);
 button4.addEventListener("click", onButton4Click, true);
 
 // ----------------
-// 完了メッセージ
+// 完了メッセージ表示
 // ----------------
 function showFinishMessage(show) {
     const container = document.querySelector('.container');
@@ -32,12 +35,21 @@ function showFinishMessage(show) {
 }
 
 // ----------------
-// タスク追加
+// ローカルストレージ用配列
 // ----------------
-function onButtonClick() {
-    const taskName = window.prompt("タスク内容を入力してください");
-    if (!taskName || taskName.trim() === "") return;
+let tasksArray = [];
 
+// ページ読み込み時に保存済みタスクを復元
+document.addEventListener('DOMContentLoaded', () => {
+    const savedTasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+    savedTasks.forEach(task => addTaskToDOM(task));
+    tasksArray = savedTasks;
+});
+
+// ----------------
+// タスクをDOMに追加する関数
+// ----------------
+function addTaskToDOM(task) {
     const container = document.querySelector('.container');
     let taskList = container.querySelector('.task-list');
     if (!taskList) {
@@ -52,34 +64,30 @@ function onButtonClick() {
     // 〇ボタン
     const circle_button = document.createElement('button');
     circle_button.className = 'circle';
-    circle_button.textContent = '〇';
+    circle_button.textContent = task.done ? '☑' : '〇';
     circle_button.onclick = function () {
-        if (circle_button.textContent === '〇') {
-            circle_button.textContent = '☑';
-            taskNameSpan.style.textDecoration = 'line-through';
-        } else {
-            circle_button.textContent = '〇';
-            taskNameSpan.style.textDecoration = 'none';
-        }
+        task.done = !task.done;
+        circle_button.textContent = task.done ? '☑' : '〇';
+        taskNameSpan.style.textDecoration = task.done ? 'line-through' : 'none';
+        localStorage.setItem('tasks', JSON.stringify(tasksArray));
     };
 
     // タスク名
     const taskNameSpan = document.createElement('span');
     taskNameSpan.className = 'task-name';
-    taskNameSpan.textContent = taskName;
+    taskNameSpan.textContent = task.name;
+    taskNameSpan.style.textDecoration = task.done ? 'line-through' : 'none';
 
     // ☆ボタン
     const star_button = document.createElement('button');
     star_button.className = 'star';
-    star_button.textContent = '☆';
+    star_button.textContent = task.starred ? '★' : '☆';
+    star_button.style.color = task.starred ? '#ffd700' : '';
     star_button.onclick = function () {
-        if (star_button.textContent === '☆') {
-            star_button.textContent = '★';
-            star_button.style.color = '#ffd700';
-        } else {
-            star_button.textContent = '☆';
-            star_button.style.color = '';
-        }
+        task.starred = !task.starred;
+        star_button.textContent = task.starred ? '★' : '☆';
+        star_button.style.color = task.starred ? '#ffd700' : '';
+        localStorage.setItem('tasks', JSON.stringify(tasksArray));
     };
 
     taskItem.appendChild(circle_button);
@@ -96,6 +104,20 @@ function onButtonClick() {
 }
 
 // ----------------
+// タスク追加（ボタン押下）
+// ----------------
+function onButtonClick() {
+    const taskName = window.prompt("タスク内容を入力してください");
+    if (!taskName || taskName.trim() === "") return;
+
+    const task = { name: taskName, done: false, starred: false };
+    tasksArray.push(task);
+    localStorage.setItem('tasks', JSON.stringify(tasksArray));
+
+    addTaskToDOM(task);
+}
+
+// ----------------
 // チェック済削除
 // ----------------
 function onButton2Click() {
@@ -104,12 +126,15 @@ function onButton2Click() {
     if (!taskList) return;
 
     const tasks = taskList.querySelectorAll('.task-item');
-    tasks.forEach(task => {
-        const circle = task.querySelector('.circle');
+    tasks.forEach((taskItem, index) => {
+        const circle = taskItem.querySelector('.circle');
         if (circle && circle.textContent === '☑') {
-            task.remove();
+            taskItem.remove();
+            tasksArray.splice(index, 1); // 配列からも削除
         }
     });
+
+    localStorage.setItem('tasks', JSON.stringify(tasksArray));
 
     if (taskList && taskList.children.length === 0) {
         showFinishMessage(true);
@@ -119,11 +144,11 @@ function onButton2Click() {
 }
 
 // ----------------
-// ≡ メニュー
+// ≡ メニュー開閉
 // ----------------
 function onButton3Click() {
     const container = document.querySelector('.container');
-    container.classList.toggle('menu-open'); // 開閉のみ
+    container.classList.toggle('menu-open');
 }
 
 // ----------------
@@ -131,7 +156,7 @@ function onButton3Click() {
 // ----------------
 tabAll.addEventListener('click', () => {
     document.querySelectorAll('.task-item').forEach(task => {
-        task.style.display = 'flex';  // 全部表示
+        task.style.display = 'flex';
     });
     tabAll.classList.add('active-tab');
     tabStar.classList.remove('active-tab');
@@ -150,20 +175,8 @@ tabStar.addEventListener('click', () => {
 function onButton4Click() {
     document.querySelectorAll('.task-item').forEach(task => {
         const star = task.querySelector('.star');
-        if (star && star.textContent === '★') {
-            task.style.display = 'flex';
-        } else {
-            task.style.display = 'none';
-        }
+        task.style.display = (star && star.textContent === '★') ? 'flex' : 'none';
     });
     tabStar.classList.add('active-tab');
     tabAll.classList.remove('active-tab');
 }
-
-// タスクを保存
-localStorage.setItem('tasks', JSON.stringify(tasksArray));
-
-// ページ読み込み時に復元
-const savedTasks = JSON.parse(localStorage.getItem('tasks') || '[]');
-savedTasks.forEach(task => addTaskToDOM(task));
-
